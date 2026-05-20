@@ -104,8 +104,45 @@ npm run dev
 ├── public/                  # 静态资源
 ├── scripts/                 # 工具脚本
 ├── src/                     # 应用源码
+│   ├── app/                 # Next.js App Router 页面
+│   │   ├── layout.tsx       # 根布局（Sidebar + 内容区）
+│   │   ├── page.tsx         # 工作台首页
+│   │   ├── globals.css      # 全局样式 + 共享组件类
+│   │   ├── editor/          # AI 编辑器
+│   │   ├── ideas/           # 选题灵感
+│   │   ├── trends/          # 热点分析
+│   │   ├── publish/         # 发布管理
+│   │   ├── analytics/       # 数据分析
+│   │   ├── assets/          # 素材库
+│   │   └── keys/            # Key 管理
+│   ├── components/          # 共享 UI 组件
+│   │   ├── sidebar.tsx      # 侧边导航栏（品牌 + 菜单 + 用户信息）
+│   │   └── icons.tsx        # SVG 导航图标集
+│   └── lib/
+│       ├── design-tokens.ts # 设计令牌（颜色、字体、导航配置）
+│       └── ...              # 工具函数 / API 客户端
 └── package.json
 ```
+
+## 设计系统
+
+基于原型设计（`prototype/`），颜色和组件风格统一使用预定义的令牌：
+
+- **颜色色板**：见 `src/lib/design-tokens.ts` 的 `colors` 常量（暖色中性色盘，#cd5a3a 珊瑚色为强调色）
+- **共享组件类**（定义在 `src/app/globals.css`）：
+  - `.pr-btn` — 按钮（支持 `.primary`、`.accent`、`.sm`、`.ghost` 修饰）
+  - `.pr-input` — 输入框
+  - `.pr-card` — 卡片容器
+  - `.pr-scroll` — 自定义滚动条容器
+- **导航图标**：`src/components/icons.tsx` 提供 8 个 SVG 导航图标
+
+## 开发规范
+
+- 页面代码放在 `src/app/` 下，按路由名建文件夹（App Router 约定）
+- 共享组件放在 `src/components/`
+- 颜色和尺寸统一引用 `src/lib/design-tokens.ts`，不硬编码
+- 新增 AI API 调用走后端 Proxy，不从前端直调第三方 provider
+- 提交信息使用约定式提交（`feat:` / `fix:` / `chore:` / `docs:`）
 
 ## 关键架构决策
 
