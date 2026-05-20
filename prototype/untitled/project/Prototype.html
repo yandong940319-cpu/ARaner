@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>盎然内容 ·  工作台原型</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #f7f6f2; color: #1a1a1a; font-family: "Inter", -apple-system, system-ui, "PingFang SC", "Microsoft YaHei", sans-serif; -webkit-font-smoothing: antialiased; }
+  #root { width: 100%; height: 100vh; min-width: 1180px; }
+  body { overflow-x: auto; overflow-y: hidden; }
+  * { box-sizing: border-box; }
+  button { font-family: inherit; }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="design-tokens.jsx"></script>
+<script type="text/babel" src="proto-data.jsx"></script>
+<script type="text/babel" src="proto-shell.jsx"></script>
+<script type="text/babel" src="proto-home.jsx"></script>
+<script type="text/babel" src="proto-trends.jsx"></script>
+<script type="text/babel" src="proto-ideas.jsx"></script>
+<script type="text/babel" src="proto-editor.jsx"></script>
+<script type="text/babel" src="proto-editor-modals.jsx"></script>
+<script type="text/babel" src="proto-publish.jsx"></script>
+<script type="text/babel" src="proto-analytics.jsx"></script>
+<script type="text/babel" src="proto-assets.jsx"></script>
+<script type="text/babel" src="proto-keys.jsx"></script>
+
+<script type="text/babel">
+function App() {
+  // Persist current page across reload (helpful for iteration)
+  const [page, setPage] = React.useState(() => {
+    try {
+      const h = window.location.hash.replace(/^#/, '');
+      if (h && PAGES.find(p => p.id === h)) return h;
+      const saved = localStorage.getItem('proto-page');
+      if (saved && PAGES.find(p => p.id === saved)) return saved;
+    } catch {}
+    return 'home';
+  });
+  // Cross-page payload for hand-offs (idea → editor, asset → editor, etc.)
+  const [routePayload, setRoutePayload] = React.useState(null);
+
+  const go = React.useCallback((id, payload = null) => {
+    setPage(id);
+    setRoutePayload(payload);
+    try { localStorage.setItem('proto-page', id); window.location.hash = id; } catch {}
+    requestAnimationFrame(() => {
+      document.querySelectorAll('.pr-scroll').forEach(el => { el.scrollTop = 0; });
+    });
+  }, []);
+
+  const clearPayload = React.useCallback(() => setRoutePayload(null), []);
+
+  React.useEffect(() => {
+    const onHash = () => {
+      const h = window.location.hash.replace(/^#/, '');
+      if (h && PAGES.find(p => p.id === h)) setPage(h);
+    };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+
+  const Component = {
+    home:      PageHome,
+    trends:    PageTrends,
+    ideas:     PageIdeas,
+    editor:    PageEditor,
+    publish:   PagePublish,
+    analytics: PageAnalytics,
+    assets:    PageAssets,
+    keys:      PageKeys,
+  }[page] || PageHome;
+
+  return (
+    <RouteContext.Provider value={{ page, go, payload: routePayload, clearPayload }}>
+      <div style={{ display: 'flex', height: '100%' }}>
+        <Sidebar active={page} go={go} />
+        <Component />
+      </div>
+    </RouteContext.Provider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
+</body>
+</html>
