@@ -58,26 +58,78 @@ Next.js App → AI Proxy (Key Router) → Provider Adapter (Anthropic/OpenAI/...
 
 ## 快速开始
 
+### 前置要求
+
+- Node.js 18+
+- PostgreSQL 15+（本地运行需要）
+- Anthropic API Key（AI 生成功能需要）
+
+### 安装运行
+
 ```bash
 # 安装依赖
 npm install
 
-# 环境变量
+# 配置环境变量
 cp .env.example .env.local
+# 编辑 .env.local 填入 DATABASE_URL 等配置
+
+# 初始化数据库
+npx prisma migrate dev
 
 # 启动开发服务器
 npm run dev
 ```
 
+### 环境变量
+
+| 变量 | 说明 | 必需 |
+|------|------|------|
+| `DATABASE_URL` | PostgreSQL 连接字符串 | 是 |
+| `NEXTAUTH_SECRET` | NextAuth.js 密钥 | 是 |
+| `NEXTAUTH_URL` | 应用部署地址 | 是 |
+| `PROXY_PUBLIC_KEY` | AI Proxy 公钥（Key 加密传输） | 是 |
+| `PROXY_PRIVATE_KEY` | AI Proxy 私钥 | 是 |
+
+> 用户自备的 Anthropic/OpenAI 等 API Key 通过应用的 Key 管理页面配置，非环境变量。
+
+## 项目结构
+
+```
+├── docs/                    # 文档
+│   ├── IMPLEMENT_PLAN.md    # 实施计划与架构设计
+│   └── 盎然内容-实施计划.docx  # Word 版计划
+├── prototype/               # 设计原型（Claude Design 导出）
+│   └── untitled/project/    # React 原型源码 + screenshots
+├── public/                  # 静态资源
+├── scripts/                 # 工具脚本
+├── src/                     # 应用源码
+└── package.json
+```
+
+## 关键架构决策
+
+参见 [docs/IMPLEMENT_PLAN.md#十架构决策记录-adr](docs/IMPLEMENT_PLAN.md#十架构决策记录-adr) 的完整 ADR：
+
+| ADR | 决策 | 影响 |
+|-----|------|------|
+| 001 | 多租户 SaaS | 所有数据表带 org_id |
+| 002 | 用户自备 API Key | Key 加密传输（RSA→AES-256-GCM），前端不接触明文 |
+| 003 | AI Proxy 转发 | 前端不直调第三方 API，统一 SSE streaming |
+| 004 | SSE Streaming | AI 生成逐 chunk 渲染，不等全量返回 |
+| 005 | Mock adapter 先行 | 发布状态机 Wave 1 用 mock，Wave 4 接真实 API |
+
 ## 文档
 
-- [实施计划](docs/IMPLEMENT_PLAN.md) — 完整的产品规划与技术方案
-- [设计原型](prototype/) — Claude Design 导出的原始原型
+- [实施计划](docs/IMPLEMENT_PLAN.md) — 完整的产品规划、技术方案与 WAVE 交付计划
+- [设计原型](prototype/) — 原型源码和 Wireframes（7 个页面的完整交互设计）
 
 ## 团队
 
-- 产品经理 / PM
-- 测试 / QA
-- 工程师 / Dev
-- 代码评审 / Code Review
-- 技术负责人 / Tech Lead
+| 角色 | 负责 |
+|------|------|
+| 产品经理 | 产品定位、范围划分、Wave 计划 |
+| 架构师 / 代码评审 | 数据模型、AI Proxy 架构、Key 管理方案 |
+| 工程师 | 工程实现、代码评审、性能优化 |
+| 技术负责人 | 整体架构评审、工程演进策略 |
+| 测试 | 验收清单、边界条件矩阵、AI 质量验收 |
