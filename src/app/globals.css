@@ -49,16 +49,17 @@ button {
   cursor: pointer;
   white-space: nowrap;
   flex: 0 0 auto;
-  transition: background 0.12s, border-color 0.12s;
+  transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
 }
-.pr-btn:hover { background: #fbfaf7; border-color: #d6d3ca; }
+.pr-btn:hover { background: #fbfaf7; border-color: #d6d3ca; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
 .pr-btn.primary { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
 .pr-btn.primary:hover { background: #000; }
 .pr-btn.accent { background: #cd5a3a; color: #fff; border-color: #cd5a3a; }
 .pr-btn.accent:hover { background: #b94d2f; }
 .pr-btn.sm { height: 26px; padding: 0 10px; font-size: 12px; }
+.pr-btn.icon { padding: 0; width: 32px; justify-content: center; }
 .pr-btn.ghost { border-color: transparent; background: transparent; }
-.pr-btn.ghost:hover { background: #fbfaf7; border-color: #e8e6df; }
+.pr-btn.ghost:hover { background: #fbfaf7; border-color: #e8e6df; box-shadow: none; }
 
 .pr-input {
   width: 100%;
@@ -80,7 +81,95 @@ button {
   border: 1px solid #e8e6df;
   border-radius: 10px;
 }
+.pr-card.hov {
+  cursor: pointer;
+  transition: border-color .12s, box-shadow .12s;
+}
+.pr-card.hov:hover {
+  border-color: #d6d3ca;
+  box-shadow: 0 1px 0 #e8e6df, 0 4px 16px -8px rgba(0,0,0,.08);
+}
+
+.pr-row.hov {
+  cursor: pointer;
+  transition: background .12s;
+}
+.pr-row.hov:hover {
+  background: #fbfaf7;
+}
+
+.pr-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid #e8e6df;
+  border-radius: 11px;
+  font: 500 11px/1 "Inter", -apple-system, system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #5e5b54;
+  background: #ffffff;
+  cursor: default;
+  width: max-content;
+  justify-self: start;
+  white-space: nowrap;
+}
+.pr-pill.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+.pr-pill.click { cursor: pointer; }
+.pr-pill.click:hover { background: #fbfaf7; }
+.pr-pill.click.active:hover { background: #1a1a1a; }
 
 .pr-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
 .pr-scroll::-webkit-scrollbar-thumb { background: #e0ddd5; border-radius: 4px; }
 .pr-scroll::-webkit-scrollbar-track { background: transparent; }
+
+@keyframes pr-spin { to { transform: rotate(360deg); } }
+.pr-spin { animation: pr-spin .8s linear infinite; }
+
+@keyframes pr-pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+@keyframes pr-slide-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes pr-fade { from { opacity: 0; } to { opacity: 1; } }
+
+@keyframes pr-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+.pr-label {
+  font: 500 11px/1.4 "Inter", -apple-system, system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #9a958b;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pr-kbd {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid #e8e6df;
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  font: 500 11px/1 "JetBrains Mono", ui-monospace, monospace;
+  color: #5e5b54;
+  background: #ffffff;
+}
+
+.pr-platform {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #5e5b54;
+}
+.pr-platform .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.pr-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}

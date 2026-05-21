@@ -3,6 +3,7 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { colors } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
+import { CardSkeleton } from '@/components/skeleton';
 
 interface ApiKeyData {
   id: string;
@@ -121,7 +122,9 @@ export default function KeysPage() {
         )}
 
         {loading ? (
-          <div style={{ textAlign: 'center', color: colors.text3, padding: 40, fontSize: 13 }}>加载中...</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {[1, 2, 3].map(i => <CardSkeleton key={i} />)}
+          </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {PROVIDERS.map(provider => {

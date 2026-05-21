@@ -3,6 +3,7 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { colors } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
+import { TableSkeleton } from '@/components/skeleton';
 
 interface Schedule {
   id: string;
@@ -151,7 +152,7 @@ export default function PublishPage() {
         {view === 'calendar' ? (
           <CalendarView schedules={filtered} />
         ) : loading ? (
-          <div style={{ textAlign: 'center', color: colors.text3, padding: 40, fontSize: 13 }}>加载中...</div>
+          <TableSkeleton rows={5} />
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: 'center', color: colors.text3, padding: 40, fontSize: 13 }}>
             暂无排期，点击"新建排期"创建
@@ -228,96 +229,159 @@ export default function PublishPage() {
   );
 }
 
+// --- Week constants ---
+const WEEK_DAYS = ['一', '二', '三', '四', '五', '六', '日'];
+const TIME_SLOTS = [
+  { id: 'morning', label: '上午', range: [6, 12] },
+  { id: 'afternoon', label: '下午', range: [12, 18] },
+  { id: 'evening', label: '晚上', range: [18, 23] },
+  { id: 'night', label: '深夜', range: [0, 6] },
+];
+function getWeekStart(d: Date): Date {
+  const day = d.getDay(); // 0=Sun
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday
+  const monday = new Date(d);
+  monday.setDate(diff);
+  monday.setHours(0, 0, 0, 0);
+  return monday;
+}
+function getSlot(d: Date): string {
+  const h = d.getHours();
+  for (const s of TIME_SLOTS) {
+    if (h >= s.range[0] && h < s.range[1]) return s.id;
+  }
+  return 'morning';
+}
+
 function CalendarView({ schedules }: { schedules: Schedule[] }) {
   const today = new Date();
-  const year = today.getFullYear();
-  const month = today.getMonth();
-  const firstDay = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+  const [weekOffset, setWeekOffset] = useState(0);
+  const weekStart = getWeekStart(new Date(today.getTime() + weekOffset * 7 * 86400000));
 
-  const getSchedulesForDay = (day: number) => {
+  const weekDays = WEEK_DAYS.map((_, i) => {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    return d;
+  });
+
+  const year = weekStart.getFullYear();
+  const month = weekStart.getMonth();
+  const weekNum = Math.ceil((weekStart.getTime() - new Date(year, 0, 1).getTime()) / 604800000);
+
+  const getSchedulesForCell = (day: Date, slot: string) => {
     return schedules.filter(s => {
-      if (!s.scheduledAt && !s.publishedAt) return false;
-      const date = new Date(s.scheduledAt || s.publishedAt || '');
-      return date.getDate() === day && date.getMonth() === month && date.getFullYear() === year;
+      const dateStr = s.scheduledAt || s.publishedAt;
+      if (!dateStr) return false;
+      const d = new Date(dateStr);
+      return d.getDate() === day.getDate() && d.getMonth() === day.getMonth() && d.getFullYear() === day.getFullYear()
+        && getSlot(d) === slot;
     });
   };
 
-  const statusColor = (status: string) => {
-    const colors_map: Record<string, string> = {
-      DRAFT: '#9a958b',
-      SCHEDULED: '#a87822',
-      PUBLISHING: '#cd5a3a',
-      COMPLETED: '#2f7a4f',
-      PARTIAL_FAIL: '#b03a3a',
-    };
-    return colors_map[status] || '#9a958b';
-  };
-
-  const weeks: number[][] = [];
-  let week: number[] = [];
-  for (let i = 0; i < firstDay; i++) week.push(0);
-  for (let d = 1; d <= daysInMonth; d++) {
-    week.push(d);
-    if (week.length === 7) { weeks.push(week); week = []; }
-  }
-  if (week.length > 0) { while (week.length < 7) week.push(0); weeks.push(week); }
-
   return (
-    <div className="pr-card">
-      <div style={{ padding: '14px 20px', borderBottom: `1px solid ${colors.border}`, fontWeight: 600, fontSize: 14 }}>
-        {year} 年 {month + 1} 月
+    <div className="pr-card" style={{ padding: 0 }}>
+      {/* Header with week navigation */}
+      <div style={{
+        padding: '14px 20px', borderBottom: `1px solid ${colors.border}`,
+        display: 'flex', alignItems: 'center', gap: 12,
+      }}>
+        <button className="pr-btn ghost icon" onClick={() => setWeekOffset(w => w - 1)}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <span style={{ fontWeight: 600, fontSize: 14 }}>
+          {year} 年 {month + 1} 月 · 第 {weekNum} 周
+        </span>
+        <button className="pr-btn ghost icon" onClick={() => setWeekOffset(w => w + 1)}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+        {weekOffset !== 0 && (
+          <button className="pr-btn ghost sm" onClick={() => setWeekOffset(0)}>回本周</button>
+        )}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: `1px solid ${colors.border}` }}>
-        {weekDays.map(d => (
-          <div key={d} style={{ padding: '8px 12px', fontSize: 11, color: colors.text3, textAlign: 'center', fontWeight: 500 }}>
-            {d}
-          </div>
+
+      {/* Grid: time-slot rows × 7 days */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: `60px repeat(7, 1fr)`,
+        borderBottom: `1px solid ${colors.border}`,
+      }}>
+        {/* Header row: empty + Mon-Sun */}
+        <div style={{ borderBottom: `1px solid ${colors.border}` }} />
+        {weekDays.map((d, i) => {
+          const isToday = d.toDateString() === today.toDateString();
+          return (
+            <div key={i} style={{
+              padding: '8px 10px', borderBottom: `1px solid ${colors.border}`,
+              borderLeft: i > 0 ? `1px solid ${colors.border}` : 'none',
+              background: isToday ? colors.accentSoft : 'transparent',
+              textAlign: 'center',
+            }}>
+              <div style={{ fontSize: 10, color: isToday ? colors.accentText : colors.text3, fontWeight: 500 }}>
+                周{WEEK_DAYS[i]}
+              </div>
+              <div style={{
+                fontSize: 14, fontWeight: isToday ? 700 : 500,
+                color: isToday ? colors.accentText : colors.text,
+                marginTop: 2,
+              }}>
+                {d.getDate()}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Time-slot rows */}
+        {TIME_SLOTS.map(slot => (
+          <>
+            {/* Slot label */}
+            <div key={slot.id} style={{
+              padding: '8px 6px', textAlign: 'right',
+              fontSize: 10, color: colors.text3, fontWeight: 500,
+              borderRight: `1px solid ${colors.border}`,
+              borderBottom: `1px solid ${colors.border}`,
+            }}>
+              {slot.label}
+            </div>
+            {/* 7 day cells */}
+            {weekDays.map((d, di) => {
+              const cellItems = getSchedulesForCell(d, slot.id);
+              const isToday = d.toDateString() === today.toDateString();
+              return (
+                <div key={`${slot.id}-${di}`} style={{
+                  padding: 4, minHeight: 60,
+                  borderLeft: di > 0 ? `1px solid ${colors.border}` : 'none',
+                  borderBottom: `1px solid ${colors.border}`,
+                  background: isToday ? colors.accentSoft : 'transparent',
+                }}>
+                  {cellItems.slice(0, 2).map(s => {
+                    const statusCls = STATUS_META[s.status]?.cls || '';
+                    const colorMap: Record<string, string> = {
+                      good: colors.good, warn: colors.warn, accent: colors.accent,
+                      bad: colors.bad, '': colors.text3,
+                    };
+                    return (
+                      <div key={s.id} style={{
+                        fontSize: 10, padding: '3px 5px', marginBottom: 2,
+                        borderRadius: 3, background: colorMap[statusCls] ? colorMap[statusCls] + '18' : colors.surface2,
+                        color: colorMap[statusCls] || colors.text2,
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                        lineHeight: 1.3,
+                      }}>
+                        {s.draft?.title?.slice(0, 10) || STATUS_META[s.status]?.label || s.status}
+                      </div>
+                    );
+                  })}
+                  {cellItems.length > 2 && (
+                    <div style={{ fontSize: 9, color: colors.text3, paddingLeft: 4 }}>
+                      +{cellItems.length - 2}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </>
         ))}
       </div>
-      {weeks.map((week, wi) => (
-        <div key={wi} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', minHeight: 100, borderBottom: wi < weeks.length - 1 ? `1px solid ${colors.border}` : 'none' }}>
-          {week.map((day, di) => {
-            const daySchedules = day > 0 ? getSchedulesForDay(day) : [];
-            const isToday = day === today.getDate();
-            return (
-              <div key={di} style={{
-                padding: 6, borderRight: di < 6 ? `1px solid ${colors.border}` : 'none',
-                background: isToday ? colors.accentSoft : 'transparent',
-                minHeight: 80,
-              }}>
-                {day > 0 && (
-                  <>
-                    <div style={{
-                      fontSize: 12, fontWeight: isToday ? 700 : 500,
-                      color: isToday ? colors.accentText : colors.text2,
-                      marginBottom: 4,
-                    }}>
-                      {day}
-                    </div>
-                    {daySchedules.slice(0, 3).map(s => (
-                      <div key={s.id} style={{
-                        fontSize: 10, padding: '2px 4px', marginBottom: 2,
-                        borderRadius: 3, background: statusColor(s.status) + '18',
-                        color: statusColor(s.status), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                      }}>
-                        {STATUS_META[s.status]?.label || s.status}
-                        {s.draft?.title ? ` · ${s.draft.title.slice(0, 12)}` : ''}
-                      </div>
-                    ))}
-                    {daySchedules.length > 3 && (
-                      <div style={{ fontSize: 10, color: colors.text3, paddingLeft: 4 }}>
-                        +{daySchedules.length - 3} 更多
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      ))}
     </div>
   );
 }
