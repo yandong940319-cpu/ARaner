@@ -27,7 +27,7 @@ const PROVIDERS: { id: string; label: string; color: string; roles: string[] }[]
   { id: 'flux', label: 'FLUX', color: '#7c3aed', roles: ['image'] },
   { id: 'kling', label: '可灵 Kling', color: '#ff6b00', roles: ['video'] },
   { id: 'sora', label: 'Sora (OpenAI)', color: '#10a37f', roles: ['video'] },
-] as const;
+];
 const ROLES = [
   { id: 'text', label: '文字模型', desc: '生成正文、选题、分析文本' },
   { id: 'image', label: '图片模型', desc: '生成封面、配图' },
@@ -137,7 +137,7 @@ export default function KeysPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {PROVIDERS.map(p => {
               const providerKeys = getKeyForProvider(p.id);
-              const relevantRoles = ROLES.filter(r => (p.roles as readonly string[]).includes(r.id));
+              const relevantRoles = ROLES.filter(r => p.roles.includes(r.id));
               return (
                 <div key={p.id} className="pr-card">
                   <div style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', gap: 10 }}>
