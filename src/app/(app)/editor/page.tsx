@@ -11,6 +11,18 @@ const LENGTH_OPTIONS = [
   { id: 'mid', label: '中', desc: '600-900 字' },
   { id: 'long', label: '长', desc: '1000-1500 字' },
 ];
+const LENGTH_VIDEO_OPTIONS = [
+  { id: 'short', label: '短', desc: '15s' },
+  { id: 'mid', label: '中', desc: '30s' },
+  { id: 'long', label: '长', desc: '45s' },
+  { id: 'custom', label: '自定义', desc: '输入时长' },
+];
+const MODE_OPTIONS = [
+  { id: 'text', label: '纯文字' },
+  { id: 'mix', label: '图文混排' },
+  { id: 'video', label: '视频脚本' },
+] as const;
+type EditMode = (typeof MODE_OPTIONS)[number]['id'];
 const PLATFORMS = [
   { id: 'xhs', label: '小红书', color: '#ff2741' },
   { id: 'yt', label: 'YouTube', color: '#ff0000' },
@@ -35,7 +47,10 @@ export default function EditorPage() {
   const [title, setTitle] = useState('¥200 露营 5 件套清单 · 独居女生第一次');
   const [platform, setPlatform] = useState('xhs');
   const [tone, setTone] = useState('治愈');
+  const [mode, setMode] = useState<EditMode>('text');
   const [length, setLength] = useState('mid');
+  const [customDuration, setCustomDuration] = useState('60');
+  const currentLengthOpts = mode === 'video' ? LENGTH_VIDEO_OPTIONS : LENGTH_OPTIONS;
   const [prompt, setPrompt] = useState('写一篇我第一次独自露营的小红书，预算 200，重点讲装备清单 + 避坑。开头要有情绪钩子，第一人称，多用 emoji 但克制。');
   const [body, setBody] = useState('');
   const [coverAsset, setCoverAsset] = useState<string | null>(null);
@@ -74,7 +89,9 @@ export default function EditorPage() {
         setTitle(d.title || title);
         setPlatform(d.platform || platform);
         setTone(d.tone || tone);
+        setMode(d.mode || mode);
         setLength(d.length || length);
+        setCustomDuration(d.customDuration || customDuration);
         setPrompt(d.prompt || prompt);
         setBody(d.body || '');
         if (d.body) setHasGenerated(true);
@@ -86,10 +103,10 @@ export default function EditorPage() {
   useEffect(() => {
     try {
       localStorage.setItem('araner-editor-draft', JSON.stringify({
-        title, platform, tone, length, prompt, body,
+        title, platform, tone, mode, length, customDuration, prompt, body,
       }));
     } catch {}
-  }, [title, platform, tone, length, prompt, body]);
+  }, [title, platform, tone, mode, length, customDuration, prompt, body]);
 
   const handleGenerate = useCallback(async () => {
     setLoading(true);
@@ -293,6 +310,33 @@ ${body.slice(0, 3000)}
           padding: '20px', overflow: 'auto',
           display: 'flex', flexDirection: 'column', gap: 16,
         }}>
+          {/* Mode Selector */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 500, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>
+              创作模式
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {MODE_OPTIONS.map(m => (
+                <span
+                  key={m.id}
+                  className={`pr-pill click ${mode === m.id ? 'active' : ''}`}
+                  onClick={() => {
+                    const prev = mode;
+                    if (m.id === 'video' && prev !== 'video') {
+                      setLength('short');
+                    } else if (prev === 'video' && m.id !== 'video') {
+                      setLength('mid');
+                    }
+                    setMode(m.id);
+                  }}
+                  style={mode === m.id ? { background: colors.ink, color: '#fff', borderColor: colors.ink } : {}}
+                >
+                  {m.label}
+                </span>
+              ))}
+            </div>
+          </div>
+
           {/* Platform Selection */}
           <div>
             <div style={{ fontSize: 11, fontWeight: 500, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>
@@ -336,9 +380,12 @@ ${body.slice(0, 3000)}
           <div>
             <div style={{ fontSize: 11, fontWeight: 500, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>
               长度
+              <span style={{ marginLeft: 6, fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: colors.text3 }}>
+                {mode === 'video' ? '时长' : '字数'}
+              </span>
             </div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {LENGTH_OPTIONS.map(l => (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {currentLengthOpts.map(l => (
                 <span
                   key={l.id}
                   className={`pr-pill click ${length === l.id ? 'active' : ''}`}
@@ -347,9 +394,24 @@ ${body.slice(0, 3000)}
                   title={l.desc}
                 >
                   {l.label}
+                  {length === l.id && mode === 'video' && l.id === 'custom' && (
+                    <span style={{ marginLeft: 4, fontSize: 9, opacity: 0.8 }}>({customDuration}s)</span>
+                  )}
                 </span>
               ))}
             </div>
+            {mode === 'video' && length === 'custom' && (
+              <input
+                className="pr-input"
+                type="number"
+                min={5}
+                max={300}
+                value={customDuration}
+                onChange={e => setCustomDuration(e.target.value)}
+                style={{ marginTop: 6, height: 28, fontSize: 12 }}
+                placeholder="时长（秒）"
+              />
+            )}
           </div>
 
           {/* Cover / Gallery */}

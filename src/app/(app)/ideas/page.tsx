@@ -79,16 +79,100 @@ export default function IdeasPage() {
   const handleGenerate = async () => {
     if (!genPrompt.trim()) return;
     setGenLoading(true);
-    // Mock AI generation with a short delay
-    await new Promise(r => setTimeout(r, 1500));
-    const newIdeas: Idea[] = genPrompt.split('\n').filter(Boolean).map((line, i) => ({
-      id: 'gen-' + Date.now() + '-' + i,
-      title: line.replace(/^[#\s\d.、-]+/, '').trim(),
-      platform: genPlatform,
-      source: 'ai',
-      status: '已收藏',
-    }));
-    setExtraIdeas(prev => [...newIdeas, ...prev]);
+
+    const ideaPrompt = `你是一位资深新媒体编辑。请为${genPlatform === 'xhs' ? '小红书' : genPlatform === 'tt' ? 'TikTok' : genPlatform === 'yt' ? 'YouTube' : 'Facebook'}生成 3-5 个选题方向。
+
+要求：每个选题包含标题和一句话角度说明。
+
+输出格式（每行一个选题，用 | 分隔标题和角度）：
+标题1 | 角度说明1
+标题2 | 角度说明2
+
+直接输出，不要额外说明。`;
+
+    try {
+      const res = await fetch('/api/proxy/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          provider: 'deepseek',
+          prompt: `${ideaPrompt}\n\n方向参考：${genPrompt}`,
+          system: '你是一位资深新媒体编辑，擅长策划爆款选题。',
+          maxTokens: 1024,
+        }),
+      });
+
+      if (!res.ok) throw new Error('生成选题失败');
+
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error('无法读取响应流');
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let resultText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith('data: ')) continue;
+          try {
+            const parsed = JSON.parse(trimmed.slice(6));
+            if (parsed.type === 'token') resultText += parsed.content;
+          } catch {}
+        }
+      }
+
+      // Parse the generated text into ideas
+      const generatedLines = resultText.split('\n').filter(l => l.includes('|'));
+      const newIdeas: Idea[] = generatedLines.map((line, i) => {
+        const [title, ...angleParts] = line.split('|').map(s => s.trim());
+        return {
+          id: 'gen-' + Date.now() + '-' + i,
+          title: title || line.replace(/^[\d.\s-]+/, '').trim(),
+          platform: genPlatform,
+          source: 'ai',
+          status: '已收藏',
+          angle: angleParts.join('|').trim(),
+        };
+      });
+
+      if (newIdeas.length === 0) {
+        // Fallback: use raw lines
+        const rawLines = resultText.split('\n').filter(Boolean);
+        rawLines.forEach((line, i) => {
+          newIdeas.push({
+            id: 'gen-' + Date.now() + '-' + i,
+            title: line.replace(/^[\d#.\s-]+/, '').trim().slice(0, 60),
+            platform: genPlatform,
+            source: 'ai',
+            status: '已收藏',
+          });
+        });
+      }
+
+      setExtraIdeas(prev => [...newIdeas, ...prev]);
+    } catch (err: any) {
+      // Fallback on error: generate from prompt locally
+      const fallbackIdeas: Idea[] = genPrompt.split('\n').filter(Boolean).map((line, i) => ({
+        id: 'gen-' + Date.now() + '-' + i,
+        title: line.replace(/^[#\s\d.、-]+/, '').trim(),
+        platform: genPlatform,
+        source: 'ai',
+        status: '已收藏',
+      }));
+      if (fallbackIdeas.length > 0) {
+        setExtraIdeas(prev => [...fallbackIdeas, ...prev]);
+      }
+    }
+
     setGenLoading(false);
     setGenOpen(false);
     setGenPrompt('');
