@@ -53,6 +53,7 @@ export default function PublishPage() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('all');
+  const [view, setView] = useState<'list' | 'calendar'>('list');
   const [createOpen, setCreateOpen] = useState(false);
 
   const fetchSchedules = async () => {
@@ -108,7 +109,7 @@ export default function PublishPage() {
       </div>
 
       <div className="pr-scroll" style={{ flex: 1, padding: '24px 28px', background: colors.bg, overflow: 'auto' }}>
-        <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 16, alignItems: 'center' }}>
           {TABS.map(t => (
             <span
               key={t.id}
@@ -120,9 +121,36 @@ export default function PublishPage() {
               <span style={{ marginLeft: 4, opacity: 0.7, fontSize: 10 }}>{counts[t.id]}</span>
             </span>
           ))}
+          <div style={{ flex: 1 }} />
+          <div style={{ display: 'flex', gap: 4, padding: 3, background: colors.surface2, borderRadius: 7, border: `1px solid ${colors.border}` }}>
+            <button onClick={() => setView('list')} style={{
+              all: 'unset', cursor: 'pointer',
+              padding: '5px 12px', borderRadius: 5, fontSize: 12, fontWeight: 500,
+              background: view === 'list' ? colors.surface : 'transparent',
+              color: view === 'list' ? colors.text : colors.text2,
+              boxShadow: view === 'list' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+            }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+              列表
+            </button>
+            <button onClick={() => setView('calendar')} style={{
+              all: 'unset', cursor: 'pointer',
+              padding: '5px 12px', borderRadius: 5, fontSize: 12, fontWeight: 500,
+              background: view === 'calendar' ? colors.surface : 'transparent',
+              color: view === 'calendar' ? colors.text : colors.text2,
+              boxShadow: view === 'calendar' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+            }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+              日历
+            </button>
+          </div>
         </div>
 
-        {loading ? (
+        {view === 'calendar' ? (
+          <CalendarView schedules={filtered} />
+        ) : loading ? (
           <div style={{ textAlign: 'center', color: colors.text3, padding: 40, fontSize: 13 }}>加载中...</div>
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: 'center', color: colors.text3, padding: 40, fontSize: 13 }}>
@@ -196,6 +224,100 @@ export default function PublishPage() {
           onCreated={() => { setCreateOpen(false); fetchSchedules(); }}
         />
       )}
+    </div>
+  );
+}
+
+function CalendarView({ schedules }: { schedules: Schedule[] }) {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+
+  const getSchedulesForDay = (day: number) => {
+    return schedules.filter(s => {
+      if (!s.scheduledAt && !s.publishedAt) return false;
+      const date = new Date(s.scheduledAt || s.publishedAt || '');
+      return date.getDate() === day && date.getMonth() === month && date.getFullYear() === year;
+    });
+  };
+
+  const statusColor = (status: string) => {
+    const colors_map: Record<string, string> = {
+      DRAFT: '#9a958b',
+      SCHEDULED: '#a87822',
+      PUBLISHING: '#cd5a3a',
+      COMPLETED: '#2f7a4f',
+      PARTIAL_FAIL: '#b03a3a',
+    };
+    return colors_map[status] || '#9a958b';
+  };
+
+  const weeks: number[][] = [];
+  let week: number[] = [];
+  for (let i = 0; i < firstDay; i++) week.push(0);
+  for (let d = 1; d <= daysInMonth; d++) {
+    week.push(d);
+    if (week.length === 7) { weeks.push(week); week = []; }
+  }
+  if (week.length > 0) { while (week.length < 7) week.push(0); weeks.push(week); }
+
+  return (
+    <div className="pr-card">
+      <div style={{ padding: '14px 20px', borderBottom: `1px solid ${colors.border}`, fontWeight: 600, fontSize: 14 }}>
+        {year} 年 {month + 1} 月
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: `1px solid ${colors.border}` }}>
+        {weekDays.map(d => (
+          <div key={d} style={{ padding: '8px 12px', fontSize: 11, color: colors.text3, textAlign: 'center', fontWeight: 500 }}>
+            {d}
+          </div>
+        ))}
+      </div>
+      {weeks.map((week, wi) => (
+        <div key={wi} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', minHeight: 100, borderBottom: wi < weeks.length - 1 ? `1px solid ${colors.border}` : 'none' }}>
+          {week.map((day, di) => {
+            const daySchedules = day > 0 ? getSchedulesForDay(day) : [];
+            const isToday = day === today.getDate();
+            return (
+              <div key={di} style={{
+                padding: 6, borderRight: di < 6 ? `1px solid ${colors.border}` : 'none',
+                background: isToday ? colors.accentSoft : 'transparent',
+                minHeight: 80,
+              }}>
+                {day > 0 && (
+                  <>
+                    <div style={{
+                      fontSize: 12, fontWeight: isToday ? 700 : 500,
+                      color: isToday ? colors.accentText : colors.text2,
+                      marginBottom: 4,
+                    }}>
+                      {day}
+                    </div>
+                    {daySchedules.slice(0, 3).map(s => (
+                      <div key={s.id} style={{
+                        fontSize: 10, padding: '2px 4px', marginBottom: 2,
+                        borderRadius: 3, background: statusColor(s.status) + '18',
+                        color: statusColor(s.status), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      }}>
+                        {STATUS_META[s.status]?.label || s.status}
+                        {s.draft?.title ? ` · ${s.draft.title.slice(0, 12)}` : ''}
+                      </div>
+                    ))}
+                    {daySchedules.length > 3 && (
+                      <div style={{ fontSize: 10, color: colors.text3, paddingLeft: 4 }}>
+                        +{daySchedules.length - 3} 更多
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
 }
