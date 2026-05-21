@@ -43,6 +43,10 @@ export default function EditorPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [hasGenerated, setHasGenerated] = useState(false);
+  const [outlineOpen, setOutlineOpen] = useState(false);
+  const [multiRewrite, setMultiRewrite] = useState<{ platform: string; content: string } | null>(null);
+  const [rewriteLoading, setRewriteLoading] = useState(false);
+  const [coverPrompt, setCoverPrompt] = useState<string | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
   // Handle assets returned from picker
@@ -164,6 +168,76 @@ ${prompt}
     }
   }, [title, platform, tone, length, prompt, token]);
 
+  // Multi-platform rewrite: rewrite existing content for a different platform
+  const handleRewrite = useCallback(async (targetPlatform: string) => {
+    if (!body) return;
+    setRewriteLoading(true);
+    setMultiRewrite(null);
+
+    const platformDesc = getPlatformPrompt(targetPlatform);
+    const rewritePrompt = `请将下面这篇内容改写为适合 ${platformDesc} 的版本。保持核心信息和调性不变，但调整表达方式以适配平台。
+
+原文:
+${body.slice(0, 3000)}
+
+直接输出改写后的正文，不要加额外说明。`;
+
+    try {
+      const res = await fetch('/api/proxy/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          provider: 'deepseek',
+          prompt: rewritePrompt,
+          system: '你是一位专业的内容改写专家。',
+          maxTokens: 4096,
+        }),
+      });
+
+      if (!res.ok) throw new Error('改写请求失败');
+
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error('无法读取响应流');
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let currentText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith('data: ')) continue;
+          try {
+            const parsed = JSON.parse(trimmed.slice(6));
+            if (parsed.type === 'token') {
+              currentText += parsed.content;
+              setMultiRewrite({ platform: targetPlatform, content: currentText });
+            }
+          } catch {}
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || '改写失败');
+    } finally {
+      setRewriteLoading(false);
+    }
+  }, [body, token]);
+
+  // Extract outline from body text
+  const outlineItems = body.split('\n')
+    .filter(line => line.trim().startsWith('#') || line.trim().startsWith('**') || line.trim().startsWith('- '))
+    .slice(0, 10);
+
+  const showRewriteButton = hasGenerated && outlineOpen;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, minHeight: 0 }}>
       {/* Topbar */}
@@ -186,9 +260,20 @@ ${prompt}
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {hasGenerated && (
-            <button className="pr-btn" onClick={() => { setBody(''); setHasGenerated(false); }}>
-              重新生成
-            </button>
+            <>
+              <button className="pr-btn" onClick={() => setOutlineOpen(!outlineOpen)} style={{ position: 'relative' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                <span>{outlineOpen ? '关闭大纲' : '大纲'}</span>
+                {outlineItems.length > 0 && !outlineOpen && (
+                  <span style={{ position: 'absolute', top: -4, right: -4, width: 14, height: 14, borderRadius: '50%', background: colors.accent, color: '#fff', fontSize: 9, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {outlineItems.length}
+                  </span>
+                )}
+              </button>
+              <button className="pr-btn" onClick={() => { setBody(''); setHasGenerated(false); }}>
+                重新生成
+              </button>
+            </>
           )}
           <button className={`pr-btn ${loading ? 'ghost' : 'accent'}`} onClick={handleGenerate} disabled={loading}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -319,44 +404,161 @@ ${prompt}
         </div>
 
         {/* Right Panel - Content */}
-        <div className="pr-scroll" style={{ flex: 1, background: colors.bg, overflow: 'auto' }}>
-          {error && (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
+          <div className="pr-scroll" style={{ flex: 1, background: colors.bg, overflow: 'auto' }}>
+            {error && (
+              <div style={{
+                margin: 16, padding: '10px 14px', background: colors.badSoft, color: colors.bad,
+                borderRadius: 6, fontSize: 13,
+              }}>
+                {error}
+              </div>
+            )}
+
+            {!body && !loading && !error && (
+              <div style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                height: '100%', color: colors.text3, gap: 12,
+              }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 3l1.8 5.4L19 10l-5.2 1.6L12 17l-1.8-5.4L5 10l5.2-1.6z"/>
+                </svg>
+                <div style={{ fontSize: 14 }}>在左侧配置好创作参数，点击 AI 起稿</div>
+              </div>
+            )}
+
+            {loading && !body && (
+              <div style={{ padding: 24, color: colors.text3, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="pr-spin">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                </svg>
+                正在生成...
+              </div>
+            )}
+
+            {body && (
+              <div ref={bodyRef} style={{ padding: 28, fontSize: 14, lineHeight: 1.8, color: colors.text, whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
+                {body}
+                {loading && <span style={{ animation: 'pulse 1s infinite', opacity: 0.5 }}>▍</span>}
+              </div>
+            )}
+
+            {/* Multi-rewrite result */}
+            {multiRewrite && !rewriteLoading && (
+              <div style={{ margin: '0 16px 16px', borderTop: `2px solid ${colors.accent}`, paddingTop: 16 }}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: colors.accentText, marginBottom: 8 }}>
+                  改写为「{PLATFORMS.find(p => p.id === multiRewrite.platform)?.label || multiRewrite.platform}」版本
+                </div>
+                <div style={{ padding: 16, background: colors.surface, borderRadius: 8, border: `1px solid ${colors.border}`, fontSize: 14, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
+                  {multiRewrite.content}
+                </div>
+                <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                  <button className="pr-btn sm primary" onClick={() => { setBody(multiRewrite.content); setMultiRewrite(null); setOutlineOpen(false); }}>
+                    使用此版本
+                  </button>
+                  <button className="pr-btn sm" onClick={() => setMultiRewrite(null)}>
+                    关闭
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* AI Cover Generation Bar */}
+          {hasGenerated && body && (
             <div style={{
-              margin: 16, padding: '10px 14px', background: colors.badSoft, color: colors.bad,
-              borderRadius: 6, fontSize: 13,
+              flex: '0 0 auto', padding: '10px 16px', background: colors.surface,
+              borderTop: `1px solid ${colors.border}`,
+              display: 'flex', alignItems: 'center', gap: 10,
             }}>
-              {error}
-            </div>
-          )}
+              <span style={{ fontSize: 12, color: colors.text2 }}>AI 封面：</span>
+              {PLATFORMS.map(p => (
+                <button key={p.id} className="pr-btn sm ghost" onClick={async () => {
+                  // Generate cover prompt from content
+                  const coverPrompt = `基于以下内容，生成一个封面图的画面描述，适合${p.label}的封面风格。
 
-          {!body && !loading && !error && (
-            <div style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              height: '100%', color: colors.text3, gap: 12,
-            }}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 3l1.8 5.4L19 10l-5.2 1.6L12 17l-1.8-5.4L5 10l5.2-1.6z"/>
-              </svg>
-              <div style={{ fontSize: 14 }}>在左侧配置好创作参数，点击 AI 起稿</div>
-            </div>
-          )}
+内容: ${body.slice(0, 500)}
 
-          {loading && !body && (
-            <div style={{ padding: 24, color: colors.text3, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="pr-spin">
-                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-              </svg>
-              正在生成...
-            </div>
-          )}
-
-          {body && (
-            <div ref={bodyRef} style={{ padding: 28, fontSize: 14, lineHeight: 1.8, color: colors.text, whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
-              {body}
-              {loading && <span style={{ animation: 'pulse 1s infinite', opacity: 0.5 }}>▍</span>}
+输出格式：一句画面描述 + 色调关键词。不要多余解释。`;
+                  try {
+                    const res = await fetch('/api/proxy/chat', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
+                      body: JSON.stringify({ provider: 'deepseek', prompt: coverPrompt, system: '你是一位视觉创意总监。', maxTokens: 200 }),
+                    });
+                    if (res.ok) {
+                      const reader = res.body?.getReader();
+                      if (reader) {
+                        const decoder = new TextDecoder();
+                        let text = '';
+                        while (true) {
+                          const { done, value } = await reader.read();
+                          if (done) break;
+                          text += decoder.decode(value, { stream: true });
+                        }
+                        // Parse SSE and show result
+                        const match = text.match(/"content":"([^"]+)"/);
+                        if (match) {
+                          setCoverPrompt(match[1]);
+                        }
+                      }
+                    }
+                  } catch {}
+                }} style={{ fontSize: 11 }}>
+                  {p.label}
+                </button>
+              ))}
+              <div style={{ flex: 1 }} />
+              <button className="pr-btn sm" onClick={() => router.push('/assets?picker=cover')}>
+                上传封面
+              </button>
             </div>
           )}
         </div>
+
+        {/* Outline Panel (right sidebar) */}
+        {outlineOpen && hasGenerated && outlineItems.length > 0 && (
+          <div style={{
+            width: 200, flex: '0 0 auto', background: colors.surface,
+            borderLeft: `1px solid ${colors.border}`, padding: 16, overflow: 'auto',
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 500, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
+              大纲
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {outlineItems.map((item, i) => (
+                <div key={i} style={{
+                  fontSize: 12, padding: '4px 8px', borderRadius: 4,
+                  color: colors.text2, cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  background: colors.surface2,
+                  borderLeft: `2px solid ${colors.accent}`,
+                }}>
+                  {item.replace(/^[#*]+\s*/, '')}
+                </div>
+              ))}
+            </div>
+
+            <div style={{ marginTop: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 500, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
+                多平台改写
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {PLATFORMS.filter(p => p.id !== platform).map(p => (
+                  <button
+                    key={p.id}
+                    className="pr-btn sm"
+                    onClick={() => handleRewrite(p.id)}
+                    disabled={rewriteLoading}
+                    style={{ justifyContent: 'flex-start', fontSize: 11, width: '100%' }}
+                  >
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: p.color, display: 'inline-block' }} />
+                    {rewriteLoading ? '改写中...' : `改写为 ${p.label}`}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
