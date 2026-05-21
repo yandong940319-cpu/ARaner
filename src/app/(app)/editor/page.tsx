@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { colors } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-context';
 
@@ -29,16 +30,36 @@ function getPlatformPrompt(platform: string): string {
 
 export default function EditorPage() {
   const { token } = useAuth();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [title, setTitle] = useState('¥200 露营 5 件套清单 · 独居女生第一次');
   const [platform, setPlatform] = useState('xhs');
   const [tone, setTone] = useState('治愈');
   const [length, setLength] = useState('mid');
   const [prompt, setPrompt] = useState('写一篇我第一次独自露营的小红书，预算 200，重点讲装备清单 + 避坑。开头要有情绪钩子，第一人称，多用 emoji 但克制。');
   const [body, setBody] = useState('');
+  const [coverAsset, setCoverAsset] = useState<string | null>(null);
+  const [galleryAssets, setGalleryAssets] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [hasGenerated, setHasGenerated] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
+
+  // Handle assets returned from picker
+  useEffect(() => {
+    const assets = searchParams.get('assets');
+    const target = searchParams.get('target');
+    if (assets && target) {
+      const ids = assets.split(',');
+      if (target === 'cover' && ids.length > 0) {
+        setCoverAsset(ids[0]);
+      } else if (target === 'gallery') {
+        setGalleryAssets(prev => [...new Set([...prev, ...ids])]);
+      }
+      // Clean up URL params
+      router.replace('/editor');
+    }
+  }, [searchParams, router]);
 
   // Restore draft on mount
   useEffect(() => {
@@ -244,6 +265,35 @@ ${prompt}
                 </span>
               ))}
             </div>
+          </div>
+
+          {/* Cover / Gallery */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 500, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>
+              素材
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button className="pr-btn sm" onClick={() => router.push('/assets?picker=cover')} style={{ flex: 1, justifyContent: 'center' }}>
+                {coverAsset ? '✓ 已选封面' : '选择封面'}
+              </button>
+              <button className="pr-btn sm" onClick={() => router.push('/assets?picker=gallery')} style={{ flex: 1, justifyContent: 'center' }}>
+                {galleryAssets.length > 0 ? `✓ 已选 ${galleryAssets.length} 张` : '配图'}
+              </button>
+            </div>
+            {coverAsset && (
+              <div style={{ marginTop: 6, fontSize: 11, color: colors.accentText, background: colors.accentSoft, padding: '4px 8px', borderRadius: 4 }}>
+                封面已设置
+              </div>
+            )}
+            {galleryAssets.length > 0 && (
+              <div style={{ marginTop: 6, fontSize: 11, color: colors.text2, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                {galleryAssets.map(id => (
+                  <span key={id} style={{ background: colors.surface2, padding: '2px 6px', borderRadius: 3, border: `1px solid ${colors.border}` }}>
+                    {id}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Prompt */}
