@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'provider, role, and key are required' }, { status: 400 });
   }
 
-  if (!['anthropic', 'openai', 'gemini'].includes(provider)) {
+  if (!['anthropic', 'deepseek', 'openai', 'gemini'].includes(provider)) {
     return NextResponse.json({ error: 'Invalid provider' }, { status: 400 });
   }
 

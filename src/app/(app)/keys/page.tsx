@@ -15,7 +15,7 @@ interface ApiKeyData {
   createdAt: string;
 }
 
-const PROVIDERS = ['anthropic', 'openai', 'gemini'] as const;
+const PROVIDERS = ['deepseek', 'anthropic', 'openai', 'gemini'] as const;
 const ROLES = [
   { id: 'text', label: '文字模型', desc: '生成正文、选题、分析文本' },
   { id: 'image', label: '图片模型', desc: '生成封面、配图' },
@@ -23,6 +23,7 @@ const ROLES = [
 ] as const;
 
 const PROVIDER_LABELS: Record<string, string> = {
+  deepseek: 'DeepSeek',
   anthropic: 'Anthropic (Claude)',
   openai: 'OpenAI (GPT)',
   gemini: 'Gemini',
