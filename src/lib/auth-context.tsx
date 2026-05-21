@@ -57,14 +57,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading: true,
   });
 
-  // Restore auth on mount
+  // Safety timeout: fall through loading state after 3s even if auth check hangs
   useEffect(() => {
+    const timer = setTimeout(() => setState(s => ({ ...s, loading: false })), 3000);
     const stored = getStoredAuth();
     if (stored) {
+      clearTimeout(timer);
       setState({ ...stored, loading: false });
     } else {
+      clearTimeout(timer);
       setState(s => ({ ...s, loading: false }));
     }
+    return () => clearTimeout(timer);
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {

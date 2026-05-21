@@ -16,7 +16,7 @@ interface ApiKeyData {
   createdAt: string;
 }
 
-const PROVIDERS = [
+const PROVIDERS: { id: string; label: string; color: string; roles: string[] }[] = [
   { id: 'anthropic', label: 'Anthropic (Claude)', color: '#cd5a3a', roles: ['text'] },
   { id: 'openai', label: 'OpenAI (GPT)', color: '#10a37f', roles: ['text', 'image'] },
   { id: 'gemini', label: 'Google Gemini', color: '#4285f4', roles: ['text'] },

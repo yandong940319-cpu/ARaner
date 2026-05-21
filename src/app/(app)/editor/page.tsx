@@ -365,9 +365,33 @@ ${body.slice(0, 3000)}
                 {galleryAssets.length > 0 ? `✓ 已选 ${galleryAssets.length} 张` : '配图'}
               </button>
             </div>
-            {coverAsset && (
-              <div style={{ marginTop: 6, fontSize: 11, color: colors.accentText, background: colors.accentSoft, padding: '4px 8px', borderRadius: 4 }}>
-                封面已设置
+            {(coverAsset || hasGenerated) && (
+              <div style={{
+                marginTop: 8, borderRadius: 6, overflow: 'hidden',
+                width: '100%', aspectRatio: '1.5',
+                background: coverAsset
+                  ? `linear-gradient(135deg, ${colors.accentSoft}, ${colors.borderStrong})`
+                  : `linear-gradient(135deg, #f5f0e8, #e8e4d8)`,
+                border: `1px solid ${colors.border}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                position: 'relative',
+              }}>
+                {coverAsset ? (
+                  <span style={{ fontSize: 24, opacity: 0.6 }}>🖼</span>
+                ) : (
+                  <span style={{ fontSize: 11, color: colors.text3 }}>
+                    AI 生成后可配封面
+                  </span>
+                )}
+                {coverAsset && (
+                  <div style={{
+                    position: 'absolute', bottom: 0, left: 0, right: 0,
+                    padding: '6px 10px', fontSize: 10, color: '#fff',
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.5), transparent)',
+                  }}>
+                    {coverAsset} · 封面
+                  </div>
+                )}
               </div>
             )}
             {galleryAssets.length > 0 && (
