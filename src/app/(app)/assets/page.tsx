@@ -125,7 +125,7 @@ export default function AssetsPage() {
                 </svg>
                 <span>AI 打标</span>
               </button>
-              <button className="pr-btn primary">
+              <button className="pr-btn primary" onClick={() => alert('上传功能在 Wave 4 实现，当前使用 mock 数据')}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
                 <span>上传</span>
               </button>
@@ -147,8 +147,8 @@ export default function AssetsPage() {
           <div style={{ flex: 1 }} />
           {!picker && (
             <div style={{ display: 'flex', gap: 4 }}>
-              <span className="pr-pill click active">最新</span>
-              <span className="pr-pill click">最常用</span>
+              <span className="pr-pill click active" onClick={() => alert('排序功能开发中')}>最新</span>
+              <span className="pr-pill click" onClick={() => alert('排序功能开发中')}>最常用</span>
             </div>
           )}
             {TYPES.map(t => (

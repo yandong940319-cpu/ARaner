@@ -160,7 +160,7 @@ export default function PublishPage() {
         ) : (
           <div className="pr-card">
             {filtered.map(s => (
-              <div key={s.id} className="pr-row" style={{ gridTemplateColumns: '40px 1fr 100px 110px 80px' }}>
+              <div key={s.id} className="pr-row" style={{ gridTemplateColumns: '36px minmax(0,1fr) 80px 90px 70px', gap: 12, padding: '10px 16px' }}>
                 <div style={{
                   width: 32, height: 32, borderRadius: 6,
                   background: s.draft ? '#efece4' : colors.surface2,

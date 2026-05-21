@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ["interior-view-further-trio.trycloudflare.com"],
+  allowedDevOrigins: ["investigators-registrar-kelkoo-incentives.trycloudflare.com"],
 };
 
 export default nextConfig;

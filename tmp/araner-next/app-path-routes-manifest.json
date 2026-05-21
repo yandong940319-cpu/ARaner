@@ -1,0 +1,21 @@
+{
+  "/(app)/analytics/page": "/analytics",
+  "/(app)/assets/page": "/assets",
+  "/(app)/editor/page": "/editor",
+  "/(app)/ideas/page": "/ideas",
+  "/(app)/keys/page": "/keys",
+  "/(app)/page": "/",
+  "/(app)/publish/page": "/publish",
+  "/(app)/trends/page": "/trends",
+  "/(auth)/login/page": "/login",
+  "/(auth)/register/page": "/register",
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/api/auth/login/route": "/api/auth/login",
+  "/api/auth/me/route": "/api/auth/me",
+  "/api/auth/register/route": "/api/auth/register",
+  "/api/keys/route": "/api/keys",
+  "/api/proxy/chat/route": "/api/proxy/chat",
+  "/api/schedules/route": "/api/schedules",
+  "/favicon.ico/route": "/favicon.ico"
+}

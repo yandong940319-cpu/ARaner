@@ -107,10 +107,8 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const allMax = Math.max(...PLATFORM_LINES.flatMap(l => l.points));
 
-  // Simulated brief loading for skeleton demonstration
-  // Remove when switching to real data fetching
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 400);
+    const t = setTimeout(() => setLoading(false), 100);
     return () => clearTimeout(t);
   }, []);
 
@@ -275,23 +273,24 @@ export default function AnalyticsPage() {
             <button className="pr-btn ghost sm">查看全部 →</button>
           </div>
           <div style={{
-            display: 'grid', gridTemplateColumns: '40px 60px 2fr 1fr 1.2fr 0.8fr 0.8fr 90px',
-            padding: '10px 18px', borderBottom: `1px solid ${colors.border}`,
-            fontSize: 11, color: colors.text3, fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase',
+            display: 'grid', gridTemplateColumns: '28px 50px minmax(0,2fr) 70px 80px 55px 50px 70px',
+            padding: '8px 16px', borderBottom: `1px solid ${colors.border}`,
+            fontSize: 10, color: colors.text3, fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase',
+            gap: 8,
           }}>
             <div>#</div>
             <div>平台</div>
             <div>内容</div>
-            <div>曝光</div>
+            <div style={{ textAlign: 'right' }}>曝光</div>
             <div>互动率</div>
-            <div>涨粉</div>
-            <div>评论</div>
+            <div style={{ textAlign: 'right' }}>涨粉</div>
+            <div style={{ textAlign: 'right' }}>评论</div>
             <div></div>
           </div>
           {TOP_CONTENT.map((c, i) => (
             <div key={c.id} className="pr-row hov" style={{
-              gridTemplateColumns: '40px 60px 2fr 1fr 1.2fr 0.8fr 0.8fr 90px',
-              padding: '12px 18px',
+              gridTemplateColumns: '28px 50px minmax(0,2fr) 70px 80px 55px 50px 70px',
+              padding: '10px 16px', gap: 8,
               borderTop: `1px solid ${colors.border}`,
             }}>
               <span style={{

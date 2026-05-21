@@ -1,0 +1,3 @@
+{
+  "/(app)/publish/page": "app/(app)/publish/page.js"
+}

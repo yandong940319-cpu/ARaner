@@ -1,0 +1,21 @@
+{
+  "/(app)/analytics/page": "app/(app)/analytics/page.js",
+  "/(app)/assets/page": "app/(app)/assets/page.js",
+  "/(app)/editor/page": "app/(app)/editor/page.js",
+  "/(app)/ideas/page": "app/(app)/ideas/page.js",
+  "/(app)/keys/page": "app/(app)/keys/page.js",
+  "/(app)/page": "app/(app)/page.js",
+  "/(app)/publish/page": "app/(app)/publish/page.js",
+  "/(app)/trends/page": "app/(app)/trends/page.js",
+  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/(auth)/register/page": "app/(auth)/register/page.js",
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/auth/login/route": "app/api/auth/login/route.js",
+  "/api/auth/me/route": "app/api/auth/me/route.js",
+  "/api/auth/register/route": "app/api/auth/register/route.js",
+  "/api/keys/route": "app/api/keys/route.js",
+  "/api/proxy/chat/route": "app/api/proxy/chat/route.js",
+  "/api/schedules/route": "app/api/schedules/route.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js"
+}

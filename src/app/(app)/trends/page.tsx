@@ -62,10 +62,8 @@ export default function TrendsPage() {
   const [extraRows, setExtraRows] = useState<TrendRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Simulated brief loading for skeleton demonstration
-  // Remove when switching to real data fetching
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 400);
+    const t = setTimeout(() => setLoading(false), 100);
     return () => clearTimeout(t);
   }, []);
 
