@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { colors } from '@/lib/design-tokens';
+import { CardSkeleton, TableSkeleton } from '@/components/skeleton';
 
 const KPI_DATA = [
   { label: '总曝光', value: '1.24M', delta: '+18%', dir: 'up', spark: [40, 55, 42, 68, 72, 98, 86] },
@@ -103,7 +104,42 @@ function fmtK(n: number): string {
 
 export default function AnalyticsPage() {
   const [range, setRange] = useState('week');
+  const [loading, setLoading] = useState(true);
   const allMax = Math.max(...PLATFORM_LINES.flatMap(l => l.points));
+
+  // Simulated brief loading for skeleton demonstration
+  // Remove when switching to real data fetching
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 400);
+    return () => clearTimeout(t);
+  }, []);
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, minHeight: 0 }}>
+        <div style={{
+          height: 60, flex: '0 0 auto', padding: '0 28px',
+          background: colors.surface, borderBottom: `1px solid ${colors.border}`,
+          display: 'flex', alignItems: 'center',
+        }}>
+          <h1 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>数据分析</h1>
+        </div>
+        <div className="pr-scroll" style={{ flex: 1, padding: '24px 28px', background: colors.bg, overflow: 'auto' }}>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 18 }}>
+            {[1, 2, 3, 4].map(i => <div key={i} className="pr-pill" style={{ width: 50 }} />)}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 18 }}>
+            {[1, 2, 3, 4].map(i => <CardSkeleton key={i} />)}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14, marginBottom: 18 }}>
+            <div className="pr-card" style={{ padding: 20 }}><div className="pr-label" style={{ marginBottom: 12 }}>互动量趋势</div><div style={{ height: 220, background: `linear-gradient(180deg, ${colors.border} 0%, ${colors.bg} 100%)`, borderRadius: 6 }} /></div>
+            <div className="pr-card" style={{ padding: 20 }}><div className="pr-label" style={{ marginBottom: 12 }}>平台占比</div><div style={{ height: 220, background: `linear-gradient(180deg, ${colors.border} 0%, ${colors.bg} 100%)`, borderRadius: 6 }} /></div>
+          </div>
+          <TableSkeleton rows={5} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, minHeight: 0 }}>

@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { colors } from '@/lib/design-tokens';
+import { CardSkeleton, RowSkeleton } from '@/components/skeleton';
 
 interface TrendRow {
   id: string;
@@ -59,6 +60,33 @@ export default function TrendsPage() {
   const [favs, setFavs] = useState(new Set(MOCK_TRENDS.filter(t => t.fav).map(t => t.id)));
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [extraRows, setExtraRows] = useState<TrendRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Simulated brief loading for skeleton demonstration
+  // Remove when switching to real data fetching
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 400);
+    return () => clearTimeout(t);
+  }, []);
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, minHeight: 0 }}>
+        <div style={{ height: 60, flex: '0 0 auto', padding: '0 28px', background: colors.surface, borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center' }}>
+          <div style={{ width: 120, height: 18, borderRadius: 4, background: colors.border }} />
+        </div>
+        <div className="pr-scroll" style={{ flex: 1, padding: '24px 28px', background: colors.bg, overflow: 'auto' }}>
+          <div style={{ display: 'flex', gap: 10, marginBottom: 18 }}>
+            {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="pr-pill" style={{ width: i === 1 ? 260 : 60 }} />)}
+          </div>
+          <div className="pr-card">
+            <RowSkeleton cols={8} />
+            {[1, 2, 3, 4, 5].map(i => <RowSkeleton key={i} cols={8} />)}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const rows = useMemo(() => {
     let r = [...extraRows, ...MOCK_TRENDS];
