@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Sidebar } from "@/components/sidebar";
+import { AuthWrapper } from "@/components/auth-wrapper";
 
 export const metadata: Metadata = {
   title: "盎然内容 · 工作台",
@@ -15,12 +15,9 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" className="h-full antialiased">
       <body className="h-full">
-        <div style={{ display: 'flex', height: '100%', minWidth: 1180 }}>
-          <Sidebar />
-          <main style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, minHeight: 0 }}>
-            {children}
-          </main>
-        </div>
+        <AuthWrapper>
+          {children}
+        </AuthWrapper>
       </body>
     </html>
   );
