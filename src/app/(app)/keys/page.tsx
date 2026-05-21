@@ -16,19 +16,27 @@ interface ApiKeyData {
   createdAt: string;
 }
 
-const PROVIDERS = ['deepseek', 'anthropic', 'openai', 'gemini'] as const;
+const PROVIDERS = [
+  { id: 'anthropic', label: 'Anthropic (Claude)', color: '#cd5a3a', roles: ['text'] },
+  { id: 'openai', label: 'OpenAI (GPT)', color: '#10a37f', roles: ['text', 'image'] },
+  { id: 'gemini', label: 'Google Gemini', color: '#4285f4', roles: ['text'] },
+  { id: 'deepseek', label: 'DeepSeek', color: '#4d6bfe', roles: ['text'] },
+  { id: 'qwen', label: '通义千问', color: '#615ced', roles: ['text'] },
+  { id: 'doubao', label: '豆包', color: '#1664ff', roles: ['text', 'video'] },
+  { id: 'midjourney', label: 'Midjourney', color: '#000000', roles: ['image'] },
+  { id: 'flux', label: 'FLUX', color: '#7c3aed', roles: ['image'] },
+  { id: 'kling', label: '可灵 Kling', color: '#ff6b00', roles: ['video'] },
+  { id: 'sora', label: 'Sora (OpenAI)', color: '#10a37f', roles: ['video'] },
+] as const;
 const ROLES = [
   { id: 'text', label: '文字模型', desc: '生成正文、选题、分析文本' },
   { id: 'image', label: '图片模型', desc: '生成封面、配图' },
   { id: 'video', label: '视频模型', desc: '生成视频' },
 ] as const;
 
-const PROVIDER_LABELS: Record<string, string> = {
-  deepseek: 'DeepSeek',
-  anthropic: 'Anthropic (Claude)',
-  openai: 'OpenAI (GPT)',
-  gemini: 'Gemini',
-};
+const PROVIDER_LABELS: Record<string, string> = Object.fromEntries(
+  PROVIDERS.map(p => [p.id, p.label])
+);
 
 export default function KeysPage() {
   const { token } = useAuth();
@@ -127,14 +135,16 @@ export default function KeysPage() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {PROVIDERS.map(provider => {
-              const providerKeys = getKeyForProvider(provider);
+            {PROVIDERS.map(p => {
+              const providerKeys = getKeyForProvider(p.id);
+              const relevantRoles = ROLES.filter(r => (p.roles as readonly string[]).includes(r.id));
               return (
-                <div key={provider} className="pr-card">
-                  <div style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}` }}>
-                    <div style={{ fontWeight: 600, fontSize: 14 }}>{PROVIDER_LABELS[provider]}</div>
+                <div key={p.id} className="pr-card">
+                  <div style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, display: 'inline-block', flex: '0 0 auto' }} />
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{p.label}</div>
                   </div>
-                  {ROLES.map(role => {
+                  {relevantRoles.length > 0 ? relevantRoles.map(role => {
                     const k = providerKeys.find(k => k.role === role.id);
                     return (
                       <div key={role.id} className="pr-row" style={{
@@ -147,7 +157,29 @@ export default function KeysPage() {
                         </div>
                         <div>
                           {k ? (
-                            <span className="pr-pill good">已配置 · · · ·{k.keyHash}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{
+                                width: 20, height: 10, borderRadius: 5,
+                                background: k.isActive ? colors.good : colors.text3,
+                                display: 'inline-block', position: 'relative', cursor: 'pointer',
+                                transition: 'background .15s',
+                              }} onClick={async () => {
+                                // Toggle active state
+                                await fetch('/api/keys', {
+                                  method: 'PATCH',
+                                  headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}` },
+                                  body: JSON.stringify({ id: k.id, isActive: !k.isActive }),
+                                });
+                                fetchKeys();
+                              }}>
+                                <span style={{
+                                  position: 'absolute', top: 1, left: k.isActive ? 10 : 1,
+                                  width: 8, height: 8, borderRadius: '50%', background: '#fff',
+                                  transition: 'left .15s',
+                                }} />
+                              </span>
+                              <span className="pr-pill good">已配置 · · · ·{k.keyHash}</span>
+                            </div>
                           ) : (
                             <span style={{ fontSize: 12, color: colors.text3 }}>未配置</span>
                           )}
@@ -159,7 +191,7 @@ export default function KeysPage() {
                             </button>
                           ) : (
                             <button className="pr-btn sm" onClick={() => {
-                              setNewKey({ provider, role: role.id, key: '', label: '' });
+                              setNewKey({ provider: p.id, role: role.id, key: '', label: '' });
                               setAddOpen(true);
                             }}>
                               添加
@@ -168,7 +200,11 @@ export default function KeysPage() {
                         </div>
                       </div>
                     );
-                  })}
+                  }) : (
+                    <div className="pr-row" style={{ padding: '12px 20px', color: colors.text3, fontSize: 12 }}>
+                      该 Provider 不支持当前角色分配
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -193,7 +229,7 @@ export default function KeysPage() {
                   <label style={{ fontSize: 12, fontWeight: 500, color: colors.text2, marginBottom: 4, display: 'block' }}>Provider</label>
                   <select className="pr-input" value={newKey.provider}
                     onChange={e => setNewKey(p => ({ ...p, provider: e.target.value }))}>
-                    {PROVIDERS.map(p => <option key={p} value={p}>{PROVIDER_LABELS[p]}</option>)}
+                    {PROVIDERS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
                   </select>
                 </div>
                 <div>
